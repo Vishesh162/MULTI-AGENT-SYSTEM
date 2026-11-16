@@ -1,6 +1,7 @@
 import re, time
 import streamlit as st
 from scene3d import scene
+from tools import get_secret
 from agents import (build_search_agent, build_reader_agent, build_factcheck_agent,
                     writer_chain, critic_chain)
 try:
@@ -100,6 +101,9 @@ def get_score(fb) -> float:
 left, right = st.columns([2.1, 1], gap="large")
 
 with left:
+    keys_missing = (not get_secret("ROUTIX_API_KEY") or get_secret("ROUTIX_API_KEY") == "missing_key") or (not get_secret("TAVILY_API_KEY") or get_secret("TAVILY_API_KEY") == "missing_key")
+    if keys_missing:
+        st.warning("⚠️ **API keys not found in Secrets!** Please go to Streamlit Cloud **Manage app > Settings > Secrets** and add `ROUTIX_API_KEY` and `TAVILY_API_KEY`.")
     with st.form("ask", border=False):
         topic = st.text_input("Topic", placeholder="What do you want researched?",
                               label_visibility="collapsed")
@@ -184,6 +188,9 @@ if submitted:
     if not topic.strip():
         with report_slot:
             st.warning("Enter a topic to start.")
+    elif keys_missing:
+        with report_slot:
+            st.error("Cannot run research: `ROUTIX_API_KEY` or `TAVILY_API_KEY` is missing in Secrets.")
     else:
         try:
             st.session_state.res = run(topic.strip())

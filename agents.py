@@ -4,14 +4,16 @@ from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from tools import web_search , scrape_url 
+from tools import web_search, scrape_url, get_secret
 from dotenv import load_dotenv
 
 load_dotenv()
 
+routix_api_key = get_secret("ROUTIX_API_KEY") or "missing_key"
+
 llm = ChatOpenAI(
     model="deepseek-v4-flash-0731", # Replace with whatever model Routix provides
-    api_key=os.getenv("ROUTIX_API_KEY"),
+    api_key=routix_api_key,
     base_url="https://routixai.online/v1", 
     temperature=0,
     max_retries=5

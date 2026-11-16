@@ -7,21 +7,34 @@ from dotenv import load_dotenv
 from rich import print
 load_dotenv()
 
-tavily = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
+def get_secret(key: str, default: str = "") -> str:
+    val = os.getenv(key)
+    if not val:
+        try:
+            import streamlit as st
+            val = st.secrets.get(key, "")
+        except Exception:
+            pass
+    return val or default
+
+def get_tavily_client():
+    key = get_secret("TAVILY_API_KEY") or "missing_key"
+    return TavilyClient(api_key=key)
 
 @tool
 def web_search(query : str) -> str:
     """Search the web for recent and reliable information on a topic . Returns Titles , URLs and snippets."""
-    results = tavily.search(query=query,max_results=5)
-
-    out = []
-
-    for r in results['results']:
-        out.append(
-            f"Title: {r['title']}\nURL: {r['url']}\nSnippet: {r['content'][:300]}\n"
-        )
-    
-    return "\n----\n".join(out)
+    try:
+        tavily = get_tavily_client()
+        results = tavily.search(query=query, max_results=5)
+        out = []
+        for r in results.get('results', []):
+            out.append(
+                f"Title: {r.get('title', '')}\nURL: {r.get('url', '')}\nSnippet: {r.get('content', '')[:300]}\n"
+            )
+        return "\n----\n".join(out)
+    except Exception as e:
+        return f"Web search error: {str(e)}"
 
 @tool
 def scrape_url(url: str) -> str:
