@@ -101,9 +101,25 @@ def get_score(fb) -> float:
 left, right = st.columns([2.1, 1], gap="large")
 
 with left:
-    keys_missing = (not get_secret("ROUTIX_API_KEY") or get_secret("ROUTIX_API_KEY") == "missing_key") or (not get_secret("TAVILY_API_KEY") or get_secret("TAVILY_API_KEY") == "missing_key")
+    r_key = get_secret("ROUTIX_API_KEY")
+    t_key = get_secret("TAVILY_API_KEY")
+    keys_missing = (not r_key or r_key == "missing_key") or (not t_key or t_key == "missing_key")
     if keys_missing:
         st.warning("⚠️ **API keys not found in Secrets!** Please go to Streamlit Cloud **Manage app > Settings > Secrets** and add `ROUTIX_API_KEY` and `TAVILY_API_KEY`.")
+
+    with st.expander("🔑 API Key Diagnostics", expanded=False):
+        if r_key and r_key != "missing_key":
+            masked_r = f"{r_key[:10]}...{r_key[-4:]}" if len(r_key) > 14 else "***"
+            st.write(f"**ROUTIX_API_KEY**: ✅ Loaded (`{masked_r}`, length: {len(r_key)})")
+        else:
+            st.write("**ROUTIX_API_KEY**: ❌ Not loaded")
+
+        if t_key and t_key != "missing_key":
+            masked_t = f"{t_key[:10]}...{t_key[-4:]}" if len(t_key) > 14 else "***"
+            st.write(f"**TAVILY_API_KEY**: ✅ Loaded (`{masked_t}`, length: {len(t_key)})")
+        else:
+            st.write("**TAVILY_API_KEY**: ❌ Not loaded")
+
     with st.form("ask", border=False):
         topic = st.text_input("Topic", placeholder="What do you want researched?",
                               label_visibility="collapsed")

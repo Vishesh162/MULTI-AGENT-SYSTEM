@@ -11,9 +11,11 @@ load_dotenv()
 
 def get_llm():
     key = get_secret("ROUTIX_API_KEY")
+    if not key or key == "missing_key":
+        raise ValueError("ROUTIX_API_KEY is not set or empty in Streamlit Secrets. Please check Settings > Secrets.")
     return ChatOpenAI(
         model="deepseek-v4-flash-0731",
-        api_key=key or "missing_key",
+        api_key=key,
         base_url="https://routixai.online/v1", 
         temperature=0,
         max_retries=5

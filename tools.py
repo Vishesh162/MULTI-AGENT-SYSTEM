@@ -8,15 +8,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_secret(key: str, default: str = "") -> str:
-    val = os.getenv(key) or os.getenv(key.lower()) or os.getenv(key.upper())
+    val = None
+    # Check st.secrets first so dashboard updates take priority
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            val = st.secrets.get(key) or st.secrets.get(key.lower()) or st.secrets.get(key.upper())
+    except Exception:
+        pass
+
+    # Fall back to environment variable
     if not val:
-        try:
-            import streamlit as st
-            if hasattr(st, "secrets"):
-                val = st.secrets.get(key) or st.secrets.get(key.lower()) or st.secrets.get(key.upper())
-        except Exception:
-            pass
-    return str(val).strip() if val else default
+        val = os.getenv(key) or os.getenv(key.lower()) or os.getenv(key.upper())
+
+    if val:
+        # Strip whitespace and accidental surrounding quotes
+        return str(val).strip().strip("'\"")
+    return default
 
 def get_tavily_client():
     key = get_secret("TAVILY_API_KEY")
