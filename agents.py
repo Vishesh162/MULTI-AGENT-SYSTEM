@@ -1,30 +1,29 @@
 import os
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableLambda
 from tools import web_search, scrape_url, get_secret
 from dotenv import load_dotenv
 
 load_dotenv()
 
-routix_api_key = get_secret("ROUTIX_API_KEY") or "missing_key"
+def get_llm():
+    key = get_secret("ROUTIX_API_KEY")
+    return ChatOpenAI(
+        model="deepseek-v4-flash-0731",
+        api_key=key or "missing_key",
+        base_url="https://routixai.online/v1", 
+        temperature=0,
+        max_retries=5
+    )
 
-llm = ChatOpenAI(
-    model="deepseek-v4-flash-0731", # Replace with whatever model Routix provides
-    api_key=routix_api_key,
-    base_url="https://routixai.online/v1", 
-    temperature=0,
-    max_retries=5
-)    
-
-
-#1st agent 
+# 1st agent 
 def build_search_agent():
     return create_agent(
-        model = llm,
-        tools= [web_search],
+        model=get_llm(),
+        tools=[web_search],
         system_prompt=(
             "You are an exhaustive research agent. Run at least 4 different searches: "
             "1) latest news, 2) statistics and numbers, 3) criticism and risks, 4) expert or official reports. "
@@ -33,11 +32,11 @@ def build_search_agent():
         )
     )
 
-#2nd agent 
+# 2nd agent 
 def build_reader_agent():
     return create_agent(
-        model = llm,
-        tools = [scrape_url],
+        model=get_llm(),
+        tools=[scrape_url],
         system_prompt=(
             "You are an expert data extractor. Scrape 3-4 of the best URLs (different websites). "
             "For each URL return: SOURCE: url, KEY FACTS: exact numbers, metrics, costs, dates, examples, "
@@ -45,11 +44,11 @@ def build_reader_agent():
         )
     )
 
-#3rd agent - fact checker 
+# 3rd agent - fact checker 
 def build_factcheck_agent():
     return create_agent(
-        model = llm,
-        tools = [web_search],
+        model=get_llm(),
+        tools=[web_search],
         system_prompt=(
             "You are a fact-checker. Check every number and claim in the report "
             "against the research (search if needed). Output:\n"
@@ -59,8 +58,7 @@ def build_factcheck_agent():
         )
     )
 
-
-#writer chain 
+# writer chain 
 writer_prompt = ChatPromptTemplate.from_messages([
     ("system", "You are an expert research writer. Write clear, structured and insightful reports. "
                "Use ONLY facts from the research. Never invent numbers."),
@@ -86,9 +84,9 @@ Rules:
 Be detailed, factual and professional."""),
 ])
 
-writer_chain = writer_prompt | llm | StrOutputParser()
+writer_chain = RunnableLambda(lambda inputs: (writer_prompt | get_llm() | StrOutputParser()).invoke(inputs))
 
-#critic_chain 
+# critic chain 
 critic_prompt = ChatPromptTemplate.from_messages([
      ("system", "You are a sharp and constructive research critic. Be honest and specific."),
     ("human", """Review the research report below and evaluate it strictly on: 
@@ -113,4 +111,4 @@ One line verdict:
 ..."""),
 ])
 
-critic_chain = critic_prompt | llm | StrOutputParser()
+critic_chain = RunnableLambda(lambda inputs: (critic_prompt | get_llm() | StrOutputParser()).invoke(inputs))

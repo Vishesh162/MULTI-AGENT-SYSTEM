@@ -190,17 +190,17 @@ if submitted:
             st.warning("Enter a topic to start.")
     elif keys_missing:
         with report_slot:
-            st.error("Cannot run research: `ROUTIX_API_KEY` or `TAVILY_API_KEY` is missing in Secrets.")
+            st.error("Cannot run research: `ROUTIX_API_KEY` or `TAVILY_API_KEY` is missing from Secrets.")
     else:
         try:
             st.session_state.res = run(topic.strip())
         except GoogleRateLimitError:
             with report_slot:
-                st.error("Gemini’s daily limit is used up. Try again later or use a paid key.")
+                st.error("Model daily limit or quota reached. Try again later.")
         except Exception as e:
             print("[backend] error:", e)
             with report_slot:
-                st.error("The report couldn’t be made. Check the terminal for the error.")
+                st.error(f"The report couldn't be made: {e}")
 
 res = st.session_state.get("res")
 with report_slot:

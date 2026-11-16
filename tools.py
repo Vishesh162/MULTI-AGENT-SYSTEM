@@ -4,26 +4,27 @@ from bs4 import BeautifulSoup
 from tavily import TavilyClient
 import os 
 from dotenv import load_dotenv
-from rich import print
+
 load_dotenv()
 
 def get_secret(key: str, default: str = "") -> str:
-    val = os.getenv(key)
+    val = os.getenv(key) or os.getenv(key.lower()) or os.getenv(key.upper())
     if not val:
         try:
             import streamlit as st
-            val = st.secrets.get(key, "")
+            if hasattr(st, "secrets"):
+                val = st.secrets.get(key) or st.secrets.get(key.lower()) or st.secrets.get(key.upper())
         except Exception:
             pass
-    return val or default
+    return str(val).strip() if val else default
 
 def get_tavily_client():
-    key = get_secret("TAVILY_API_KEY") or "missing_key"
-    return TavilyClient(api_key=key)
+    key = get_secret("TAVILY_API_KEY")
+    return TavilyClient(api_key=key or "missing_key")
 
 @tool
-def web_search(query : str) -> str:
-    """Search the web for recent and reliable information on a topic . Returns Titles , URLs and snippets."""
+def web_search(query: str) -> str:
+    """Search the web for recent and reliable information on a topic. Returns Titles, URLs and snippets."""
     try:
         tavily = get_tavily_client()
         results = tavily.search(query=query, max_results=5)
